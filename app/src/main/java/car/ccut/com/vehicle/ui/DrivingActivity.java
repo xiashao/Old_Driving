@@ -6,6 +6,7 @@ import android.content.pm.ActivityInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.provider.Settings;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
@@ -28,6 +29,7 @@ public class DrivingActivity extends Activity implements OnClickListener {
     private TextView tv_songName, tv_singerName;
     private SeekBar seekBar1;// 播放进度条
     private MusicService mService;
+
     final int RIGHT = 0;
     final int LEFT = 1;
     private boolean macControl=true;
@@ -39,23 +41,28 @@ public class DrivingActivity extends Activity implements OnClickListener {
         setContentView(R.layout.qqtest);
         MyApplication application = (MyApplication) getApplication();
         mService = application.getmService();
-        mService.setCurrentListItme(1);
-        mService.playMusic(MusicUtils.getAllSongs(this).get(1).getUrl());
+        mService.setCurrentListItme(0);
+        mService.playMusic(MusicUtils.getAllSongs(this).get(0).getUrl());
         initView();
         setListener();
         gestureDetector = new GestureDetector(DrivingActivity.this,onGestureListener);
         call.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                Settings.System.putInt(getContentResolver(),Settings.System.ACCELEROMETER_ROTATION, 1);
+//得到是否开启
+                int flag = Settings.System.getInt(getContentResolver(),
+                        Settings.System.ACCELEROMETER_ROTATION, 0);
                 startActivity(new Intent(Intent.ACTION_DIAL).setData(Uri.parse("tel:")));
             }
         });
         voice.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-             mac();
+                mac();
             }
         });
+
     }
     private GestureDetector.OnGestureListener onGestureListener =
             new GestureDetector.SimpleOnGestureListener() {
@@ -122,7 +129,7 @@ public class DrivingActivity extends Activity implements OnClickListener {
         // 暂停or开始
         mPauseImageButton.setOnClickListener(new OnClickListener() {
             public void onClick(View view) {
-                mService.stopSelf();
+                mService.pausePlay();
                 if (mService.isPlay()) {
                     mPauseImageButton.setBackgroundResource(R.drawable.music_pause_bg);
                 } else {
@@ -169,7 +176,12 @@ public class DrivingActivity extends Activity implements OnClickListener {
     }
     public void mac() {
         Intent intent = new Intent(this, VoiceRecognition.class);
-        mService.pausePlay();
+        if (mService.isPlay()) {
+            mService.pausePlay();
+            mPauseImageButton.setBackgroundResource(R.drawable.music_pause_bg);
+        } else {
+            mPauseImageButton.setBackgroundResource(R.drawable.music_play_bg);
+        }
         if (macControl) {
             startService(intent);
             System.out.println("service已启动");
@@ -193,7 +205,6 @@ public class DrivingActivity extends Activity implements OnClickListener {
         if (second < 10)
             result = result + "0";
         result = result + second;
-
         return result;
     }
     @Override
